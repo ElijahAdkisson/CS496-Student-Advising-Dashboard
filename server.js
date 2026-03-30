@@ -11,7 +11,7 @@ const multer = require("multer");//receiving files from frontend
 
 //imports the functions of the other JS files
 const { parseTranscript } = require("./transcriptparser"); //import transcript parser JS calls
-const { clearTranscriptTables, db } = require("./dbUtils"); //import database interface JS calls
+const { clearTranscriptTables, db } = require("./dbUtils"); //import database interface JS calls and database
 const app = express();
 
 //stores temporary info in memory
