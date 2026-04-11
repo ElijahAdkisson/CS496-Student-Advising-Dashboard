@@ -23,10 +23,19 @@ const html = fs.readFileSync(inputFile, "utf-8");
 //this lets me use $ to access html tags like objects rather than making a big regex parser for the raw html
 const $ = cheerio.load(html);
 
+let major = $("h1.page-title").first().text().trim();
+if (major.includes(",")) {
+    major = major.split(",")[0].trim(); // keep only text before comma
+}
+
 //all the course requirements are in tables labelled sc_courselist
 const tables = $("table.sc_courselist");
 
 let output = "";
+
+if (major) {
+    output += `Major: ${major}\n\n`;
+}
 
 tables.each((i, table) => {
     output += `Table ${i + 1}\n`;//labelled headers in the output
