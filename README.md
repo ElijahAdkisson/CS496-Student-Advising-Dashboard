@@ -1,12 +1,11 @@
-AS IT STANDS CURRENTLY
-IN ORDER TO RUN THE SERVER PROPERLY, all HTML files MUST BE IN THE "PUBLIC" FOLDER, which should be a subfolder of the main project folder.
-THE 4-9-26 VERSION OF transcriptparser.js IS NOT COMPATIBLE WITH THE SERVER. THE EARLIEST VERSION MUST BE DOWNLOADED IN ORDER FOR THE SERVER TO RUN PROPERLY AS OF 4-9-26.
+FOR FRESH INSTALLS OF THE STUDENT ADVISING DASHBOARD
+  1. Install Node.js (https://nodejs.org/en)
+  2. Clone this repository
+  3. Extract repo ZIP file to folder of your choice
+  4. Open that folder in CMD
+  5. RUN: npm install
 
-TO RUN THE SERVER
-1. OPEN THE PROJECT FOLDER IN COMMAND PROMPT (CMD)
-2. ENTER THE COMMAND "node server.js"
-3. GO TO "localhost:3000" IN YOUR BROWSER
-
-TO RUN ANY OTHER FILE
-1. OPEN PROJECT FOLDER IN CMD
-2. ENTER THE COMMAND "node [filename].js [other arguments as necessary]"
+TO START THE SERVER
+  1. RUN: npm start
+  2. Open an internet browser
+  3. Go to localhost:3000
