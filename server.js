@@ -1,5 +1,5 @@
 //CS496 MAIN SERVER FILE
-//WRITTEN BY FREDDY GOODWIN
+//WRITTEN BY FREDDY GOODWIN, express middlemare security features made with ChatGPT
 
 //requirement imports
 const express = require('express');//RBAC
@@ -8,30 +8,52 @@ const sqlite3 = require('sqlite3').verbose();//database
 const bcrypt = require('bcrypt');//encryption
 const path = require('path');//serving HTML
 const multer = require("multer");//receiving files from frontend
+const fs = require("fs");
 
 //imports the functions of the other JS files
 const { processPDF } = require("./transcriptparser");
 const { clearTranscriptTables, db } = require("./dbUtils"); //import database interface JS calls and database
 const { requirementScraper } = require("./reqscrapermain");
+const { generatePlan } = require("./fouryearplan.js");
 const app = express();
 
 //stores temporary info in memory
 //this is where the uploaded transcript is put before the information is sent to the database
 const storage = multer.memoryStorage(); 
 const upload = multer({ storage: storage });
-
-
-app.use(express.static(path.join(__dirname, "public")));
-
-
-//express session middleware for log in sessions
 app.use(express.urlencoded({ extended: true }));
+
+// session setup first
 app.use(session({
     secret: 'encryptthisstringlater',
     resave: false,
     saveUninitialized: false
 }));
 
+//cache control
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+});
+//protection middleware
+app.use((req, res, next) => {
+    const protectedPages = [
+        "/fouryearplan.html",
+        "/transcript.html",
+        "/advisorpanel.html"
+    ];
+
+    if (protectedPages.includes(req.path)) {
+        if (!req.session.user) {
+            return res.redirect('/');
+        }
+    }
+
+    next();
+});
+
+// static files after auth
+app.use(express.static(path.join(__dirname, "public")));
 //login page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -111,22 +133,23 @@ app.post('/deleteuser', (req, res) => {
     db.get('SELECT * FROM Users WHERE Username = ?', [username], (err, user) => {
             if (err) {//error catch
                 console.error(err);
-                return res.send('Database error <a href="/advisorpanel">Go back</a>');
+                return res.json({ success: false, message: 'Database error' });
             }
 
             if (!user) {//nonexistent user
-                return res.send('User not found <a href="/advisorpanel">Go back</a>');
+                return res.json({ success: false, message: 'User not found' });
             }
 
             if (username == req.session.user) {//catch to make sure user doesnt delete themself
-                return res.send('Cannot delete self <a href="/advisorpanel">Go back</a>');
+                return res.json({ success: false, message: 'Cannot delete self' });
             }
 
             db.run('DELETE FROM Users WHERE username = ?', [username], function(err) {
                 if (err) {//error catch
                     console.error(err.message);
+                    return res.json({ success: false, message: 'Delete failed' });
                 }
-            return res.send('User deleted <a href="/advisorpanel">Go back</a>');
+            return res.json({ success: true, message: 'User deleted' });
             })
         });
 });
@@ -167,15 +190,8 @@ app.post('/addadvisor', (req, res) => {
 
 });
 
-//when a user submits a major on the transcript page
-app.post('/programselect', (req, res) => {
-    const selectedProgram = req.body.program;
 
-    //save selection as a session variable
-    req.session.program = selectedProgram;
-    
-    res.sendFile(path.join(__dirname, 'public', 'fouryearplan.html'));
-});
+
 
 //called when a page needs the selected program info
 app.get('/api/currentprogram', (req, res) => {
@@ -195,6 +211,15 @@ app.get('/transcript', (req, res) => {
 
     res.sendFile(path.join(__dirname, 'public', 'transcript.html'));
 });
+
+app.get('/fouryearplan', (req, res) => {
+    if (!req.session.user) {
+        return res.redirect('/');
+    }
+
+    res.sendFile(path.join(__dirname, 'public', 'fouryearplan.html'));
+});
+
 
 //called when advisor panel link is input
 app.get('/advisorpanel', (req, res) => {
@@ -216,32 +241,31 @@ app.post("/uploadtranscript", upload.single("file"), async (req, res) => {
             return res.status(400).send("Only .pdf files are allowed");
         }
 
-        // 1. Parse PDF (NOW includes major + credits)
+        // Parse PDF
         const result = await processPDF(req.file.buffer);
 
-        // 2. Clear old transcript data (prevents duplicates)
+        // Clear old transcript data
         await clearTranscriptTables(db);
 
-        // 3. Validate extracted data
+        // Validate extracted data
         const program = result.major || req.session.program || "UNDECLARED";
         const creditHours = result.creditHours || 0;
-
-        req.session.program = result.major;
+        const semesters = result.semesters || 0;
 
         if (!program) {
             return res.status(400).send("No program detected");
         }
 
-        // 4. Insert Transcript row
+        // Save session values
+        req.session.program = result.major || req.session.program;
+        req.session.hasTranscript = true;
+
+        // Insert Transcript row
         const transcriptID = await new Promise((resolve, reject) => {
             db.run(
                 `INSERT INTO Transcript (Program, CreditHours, SemestersNum)
                  VALUES (?, ?, ?)`,
-                [
-                    program,
-                    creditHours,
-                    0 // still placeholder for now
-                ],
+                [program, creditHours, semesters],
                 function (err) {
                     if (err) return reject(err);
                     resolve(this.lastID);
@@ -249,9 +273,7 @@ app.post("/uploadtranscript", upload.single("file"), async (req, res) => {
             );
         });
 
-
-
-        // 4. Insert all courses safely (sequential async)
+        // Insert courses
         for (const entry of result.table) {
             const courseNum = `${entry.subject}${entry.course}`;
 
@@ -268,12 +290,62 @@ app.post("/uploadtranscript", upload.single("file"), async (req, res) => {
             });
         }
 
-        // 5. Done
-        res.redirect("/fouryearplan.html?source=uploadtranscript");
+        // Generate plan
+        const plan = await generatePlan(program, true, false, false);
+
+        console.log("PLAN RESULT:", plan);
+
+        if (!plan) {
+            return res.status(500).send("Failed to generate plan");
+        }
+
+        // Save session plan
+        req.session.fourYearPlan = plan;
+
+        // Write file ONCE
+        const fs = require("fs");
+        fs.writeFileSync(
+            "./public/fouryearplan.json",
+            JSON.stringify(plan, null, 2)
+        );
+
+        res.redirect("/fouryearplan?source=uploadtranscript");
 
     } catch (err) {
         console.error(err);
         res.status(500).send("Server error");
+    }
+});
+
+app.get("/api/fouryearplan", (req, res) => {
+    if (!req.session.fourYearPlan) {
+        return res.status(404).json({ error: "No plan generated" });
+    }
+
+    res.json(req.session.fourYearPlan);
+});
+
+app.use(express.json());
+
+app.post("/api/generate-plan", async (req, res) => {
+    try {
+        const { sixCourse, winter, summer } = req.body;
+
+        const plan = await generatePlan(
+            req.session.program,
+            req.session.hasTranscript || false, // different input based on if a transcript is uploaded
+            sixCourse,
+            summer,
+            winter
+        );
+
+        req.session.fourYearPlan = plan;
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to generate plan" });
     }
 });
 
@@ -294,12 +366,18 @@ app.get("/api/transcript-courses", (req, res) => {
 
 //populates the transcript upload page's dropdown with all of the majors in the database
 app.get('/api/programs', (req, res) => {
-    db.all('SELECT Program FROM Programs', [], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+    db.all(
+        'SELECT DISTINCT program_name FROM requirements',
+        [],
+        (err, rows) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            // return clean array of strings
+            res.json(rows.map(r => r.program_name));
         }
-        res.json(rows);
-    });
+    );
 });
 
 //checks if the user has advisor privelege
@@ -370,7 +448,38 @@ app.get("/logout", (req, res) => {
         });
 });
 
+
 //starts the server
 app.listen(3000, () => {
     console.log('Server running at http://localhost:3000');
+});
+
+//when a user submits a major on the transcript page
+app.post("/programselect", async (req, res) => {
+    try {
+        const program = req.body.program;
+
+        if (!program) {
+            return res.status(400).send("No program selected");
+        }
+
+        req.session.program = program;
+
+        // generate plan WITHOUT transcript
+        const plan = await generatePlan(
+            program,
+            false,  // transcript = false
+            false,  // sixCourse default
+            false,  // summer
+            false   // winter
+        );
+
+        req.session.fourYearPlan = plan;
+
+        res.redirect("/fouryearplan?source=programselect");
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Server error");
+    }
 });

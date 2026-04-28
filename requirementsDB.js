@@ -85,7 +85,7 @@ function parseRequirementsFile(filePath) { //main function
 
         tempGroups["Requirements"] = new Set();//creates the first group
 
-        const headerRegex = /^\*\*(.+?)\*\*$/;//the headers of most sections (minus stem majors) are bold
+        const headerRegex = /^\*+\s*(.+?)\s*\*+:?\s*$/;//the headers of most sections (minus stem majors) are bold
         //i coded requirementshtmlparser.js to represent those sections with asterisks for easy sectioning
         const courseRegex = /\b([A-Z]{2,5}\s\d{3})\b/g;//recognizes course codes like cs180
         const selectRegex = /\b(select|pick|choose|take)\s+(?:\w+|\d+)\b/i;//recognizes the lines that say "choose 3 electives"
@@ -187,5 +187,4 @@ function parseRequirementsFile(filePath) { //main function
 
 
 module.exports = { parseRequirementsFile };
-
 

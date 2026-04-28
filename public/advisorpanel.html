@@ -4,48 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advisor Panel</title>
+
+    <style>
+        /* css for lighthouse compliance */
+
+        button,
+        input[type="submit"],
+        input[type="button"] {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 10px 14px;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="url"] {
+            min-height: 44px;
+            padding: 8px 10px;
+            margin: 6px 0 12px 0;
+            box-sizing: border-box;
+        }
+
+        label {
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        a {
+            display: inline-block;
+            padding: 8px 0;
+            margin: 6px 0;
+        }
+
+        fieldset {
+            margin-bottom: 16px;
+        }
+
+        form {
+            margin-bottom: 18px;
+        }
+    </style>
 </head>
 <body>
 
-    <h2>ADVISOR PANEL PAGE</h2>
+<main>
+
+    <h2>STUDENT PATHFINDING ADVISOR PANEL</h2>
     <p id="user"></p>
 
     <form action="/logout" method="GET">
         <button type="submit">Logout</button>
     </form>
 
-    <p>yippee!! you're in the advisor panel.</p>
+    <button type="button" onclick="window.location.href='/transcript'">
+        Go Back
+    </button>
+
+    <p>Welcome to the Advisor Panel.</p>
 
     <form action="/deleteuser" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" name="username" id="username" required><br>
+        <fieldset>
+            <legend>Delete User</legend>
 
-        <button type="submit" name="action" value="deleteuser">Delete User</button>
-        
+            <label for="delete-username">Username:</label>
+            <input type="text" name="username" id="delete-username" required><br>
+
+            <button type="submit" name="action" value="deleteuser">Delete User</button>
+        </fieldset>
     </form>
 
     <form action="/addadvisor" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" name="username" id="username" required><br>
+        <fieldset>
+            <legend>Add Advisor</legend>
 
-        <label for="password">Password:</label>
-        <input type="password" name="password" id="password" required><br>
+            <label for="advisor-username">Username:</label>
+            <input type="text" name="username" id="advisor-username" required><br>
 
-        <button type="submit" name="action" value="addadvisor">Add Advisor</button>
-        
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required><br>
+
+            <button type="submit" name="action" value="addadvisor">Add Advisor</button>
+        </fieldset>
     </form>
 
     <form action="/scrape" method="POST">
-        <label for="url">Enter Website URL:</label>
-        <input type="url" name="url" id="url" placeholder="https://catalog.wku.edu/undergraduate/science-engineering/engineering-applied-sciences/computer-science-bs/" required><br>
-        
-        <p>Please only use links leading to WKU's bachelor degree catalog. Note: this may take a moment.</p>
+        <fieldset>
+            <legend>Scrape Requirements</legend>
 
-        <a href="https://catalog.wku.edu/undergraduate/science-engineering/engineering-applied-sciences/computer-science-bs/" target="_blank" rel="noopener noreferrer">
-            Example Catalog Page
-        </a>
+            <label for="url">Enter Website URL:</label>
+            <input type="url" name="url" id="url"
+                   placeholder="https://catalog.wku.edu/undergraduate/science-engineering/engineering-applied-sciences/computer-science-bs/"
+                   required><br>
+            
+            <p>Please only use links leading to WKU's bachelor degree catalog. Note: this may take a moment.</p>
 
-        <button type="submit">Run Requirements Scraper</button>
+            <a href="https://catalog.wku.edu/undergraduate/science-engineering/engineering-applied-sciences/computer-science-bs/"
+               target="_blank" rel="noopener noreferrer">
+                Example Catalog Page
+            </a>
+
+            <button type="submit">Run Requirements Scraper</button>
+        </fieldset>
     </form>
 
     <script>
@@ -58,6 +119,8 @@
             })
             .catch(err => console.error(err));
     </script>
+
+</main>
 
 </body>
 </html>

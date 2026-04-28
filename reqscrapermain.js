@@ -33,7 +33,7 @@ async function requirementScraper(inputLink) {//main function
     await deleteProgramReqs(major); //this deletes a major's requirements so the next line can redo them
     await parseRequirementsFile(parsedFile);
     await prereqMain(major);
-    db.close();
+    //db.close();
 }
 
 function checkURL(url) {//checks to make sure the url is pointing to the right part of the page

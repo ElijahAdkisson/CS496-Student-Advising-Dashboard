@@ -4,17 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Transcript</title>
+    <style>
+        /* css for lighthouse compliance */
+
+        button,
+        input[type="submit"],
+        input[type="button"] {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 10px 14px;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="url"] {
+            min-height: 44px;
+            padding: 8px 10px;
+            margin: 6px 0 12px 0;
+            box-sizing: border-box;
+        }
+
+        label {
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        a {
+            display: inline-block;
+            padding: 8px 0;
+            margin: 6px 0;
+        }
+
+        fieldset {
+            margin-bottom: 16px;
+        }
+
+        form {
+            margin-bottom: 18px;
+        }
+    </style>
 </head>
 <body>
+
+<main>
 
     <h2>Upload Transcript or Select Program</h2>
     
     <form action="/programselect" method="POST">
-        <label for="programSelect">Select Program:</label>
-        <select id="programSelect" name="program">
-            <option value="">Loading programs...</option>
-        </select>
-        <button type="submit">Select Program</button>
+        <fieldset>
+            <legend>Select Program</legend>
+
+            <label for="programSelect">Select Program:</label>
+            <select id="programSelect" name="program" required>
+                <option value="" disabled selected>Loading programs...</option>
+            </select>
+            <button type="submit">Select Program</button>
+        </fieldset>
     </form>
 
     <script> //this fills the drop down with only existing majors in the database
@@ -23,18 +70,20 @@
         .then(data => {
             const select = document.getElementById('programSelect');
 
-            // Clear existing options
+            //clear existing options
             select.innerHTML = '';
 
-            data.forEach(item => {
+            data.forEach(program => {
                 const option = document.createElement('option');
-                option.value = item.Program;
-                option.textContent = item.Program;
+                option.value = program;
+                option.textContent = program;
                 select.appendChild(option);
             });
         })
         .catch(err => {
             console.error(err);
+            const select = document.getElementById('programSelect');
+            select.innerHTML = '<option disabled>Error loading programs</option>';
         });
 
         fetch('/api/is-advisor') //only shows advisor panel if user is an advisor
@@ -46,9 +95,9 @@
                     advisorButton.onclick = () => {
                        window.location.href = '/advisorpanel';
                     };
-                    advisorButton.type = 'button'; // prevent form submission
+                    advisorButton.type = 'button'; //prevent form submission
 
-                    // show the button before the rest of the page
+                    //show the button before the rest of the page
                     document.body.insertBefore(advisorButton, document.body.firstChild);
                 }
             })
@@ -60,9 +109,13 @@
 
     
     <form action="/uploadtranscript" method="post" enctype="multipart/form-data">
-        <label for="file-upload">Select file:</label>
-        <input type="file" id="file-upload" name="file" accept=".pdf" />
-        <button type="submit">Upload Transcript</button>
+        <fieldset>
+            <legend>Upload Transcript</legend>
+
+            <label for="file-upload">Select file:</label>
+            <input type="file" id="file-upload" name="file" accept=".pdf" required />
+            <button type="submit">Upload Transcript</button>
+        </fieldset>
     </form>
 
     
@@ -70,9 +123,8 @@
         <button type="submit">Logout</button>
     </form>
 
-        <form action="/transcript" method="GET">
-        <button type="submit">Logout</button>
-    </form>
+
+</main>
 
 </body>
 </html>

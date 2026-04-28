@@ -58,6 +58,7 @@ function extractSubjectCourseGrade(text) {
       let gradeToken = null;
 
       for (let j = i + 1; j < tokens.length; j++) {
+
         if (!courseToken && /^\d{3}$/.test(tokens[j])) {//find the next appearing course number like 180 or 496
           courseToken = tokens[j];
         } else if (courseToken && /^[A-FW]$/.test(tokens[j])) {//find the next appearing letter grade after finding the number
@@ -101,11 +102,28 @@ function extractCreditHours(text) {//finds the credit hours
 
   return 0;
 }
+function countFallSpringTerms(text) {
+  // matches: Term: Fall 2024, Term: Spring 2023, etc.
+  const termRegex = /Term:\s*(Fall|Winter|Spring|Summer)\s*(\d{4})/gi;
+
+  let match;
+  let fallSpringCount = 0;
+
+  while ((match = termRegex.exec(text)) !== null) {
+    const season = match[1].toLowerCase();
+
+    if (season === "fall" || season === "spring") {
+      fallSpringCount++;
+    }
+  }
+
+  return fallSpringCount;
+}
 
 //runs tesseract OCR on a pdf page to turn it into raw text
 //this is mainly what chatGPT was used for, i had no idea how to parse a pdf or an image file
 async function ocrPage(page) {
-  const viewport = page.getViewport({ scale: 2 });//the source pdf, at 2x scale
+  const viewport = page.getViewport({ scale: 2.5 });//the source pdf, at 2x scale
 
   const canvas = createCanvas(viewport.width, viewport.height);
   const context = canvas.getContext("2d");
@@ -122,6 +140,7 @@ async function ocrPage(page) {
 async function processPDF(buffer) { //the main function where everything runs
   const data = new Uint8Array(buffer);//load the file
   const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
+  
 
   console.log(`PDF loaded. Total pages: ${pdfDoc.numPages}`);
 
@@ -130,12 +149,14 @@ async function processPDF(buffer) { //the main function where everything runs
 
   let detectedMajor = null;
   let detectedCredits = 0;
+  let fallSpringTerms = 0;
 
   for (let i = 1; i <= pdfDoc.numPages; i++) {//run tesseract on each page one at a time
     console.log(`Processing page ${i}...`);
     const page = await pdfDoc.getPage(i);
     const text = await ocrPage(page);//run tesseract
     allText.push({ page: i, text });//dump the raw text
+    fallSpringTerms += countFallSpringTerms(text);
 
     // extract major once)
     if (!detectedMajor) {
@@ -166,7 +187,8 @@ async function processPDF(buffer) { //the main function where everything runs
   return {
     table: allTables,
     major: detectedMajor,
-    creditHours: detectedCredits
+    creditHours: detectedCredits,
+    semesters: fallSpringTerms
 };
 }
 

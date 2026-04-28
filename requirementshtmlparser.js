@@ -84,6 +84,8 @@ async function reqHTMLParser(inputFile, outputFile = "output.txt"){
                 return false;
             }
         }
+
+
         
         
         

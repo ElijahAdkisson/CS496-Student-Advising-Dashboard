@@ -1,0 +1,16 @@
+{
+  "semesters": {
+    "1": {
+      "season": "Fall",
+      "courses": [
+        "ARTS & HUMANITIES ELECTIVE",
+        "SYSTEMS ELECTIVE",
+        "GENERAL ELECTIVE 0",
+        "GENERAL ELECTIVE 1",
+        "GENERAL ELECTIVE 2"
+      ]
+    }
+  },
+  "totalCredits": 124,
+  "major": "Computer Science"
+}

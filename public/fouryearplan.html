@@ -2,52 +2,181 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Four Year Plan</title>
+
+    <style>
+        /* css for lighthouse compliance */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 60%;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #f2f2f2;
+            text-align: left;
+        }
+
+        .controls {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            width: 60%;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
 
-    <h2>FOUR YEAR PLAN PAGE</h2>
+    <form action="/logout" method="GET">
+        <button type="submit">Logout</button>
+    </form>
 
-    <p>yippee!! you're in </p>
+    <button type="button" onclick="window.location.href='/transcript'">
+        Go Back
+    </button>
 
-    <p id="programname"></p>
+    <main>
 
-    <h2>Taken Courses</h2>
-    <ul id="course-list"></ul>
+        <h2>Four Year Plan</h2>
 
-    <script>
-        fetch('/api/currentprogram')
-            .then(res => res.json())
-            .then(data => {
-                const display = document.getElementById('programname');
-                display.textContent = data.program || 'No program selected';
-            })
-            .catch(err => console.error(err));
+        <p>Program: <span id="programname">Loading...</span></p>
 
-        const params = new URLSearchParams(window.location.search);
-        const source = params.get("source");
+        <!-- CONTROLS -->
+        <div class="controls">
 
-        // Only load transcript courses if coming from uploadtranscript
-        if (source === "uploadtranscript") {
-            fetch("/api/transcript-courses")
+            <h3>Planner Options</h3>
+
+            <label>
+                <input type="checkbox" id="sixCourse">
+                6-course semesters
+            </label>
+            <br><br>
+
+            <label>
+                <input type="checkbox" id="winter">
+                Include winter semesters
+            </label>
+            <br><br>
+
+            <label>
+                <input type="checkbox" id="summer">
+                Include summer semesters
+            </label>
+            <br><br>
+
+            <button onclick="regeneratePlan()">Regenerate Plan</button>
+
+        </div>
+
+
+        <div id="plan-container"></div>
+
+        <p id="credits"></p>
+
+        <script>
+
+        let currentPlan = null;
+
+        //loads the plan initially when the page is open
+        function loadPlan() {
+            fetch("/api/fouryearplan")
                 .then(res => res.json())
                 .then(data => {
-                    const list = document.getElementById("course-list");
-
-                    list.innerHTML = "";
-
-                    data.forEach(course => {
-                        const li = document.createElement("li");
-                        li.textContent = `${course.CourseNum} - ${course.Grade}`;
-                        list.appendChild(li);
-                    });
+                    currentPlan = data;
+                    renderPlan(data);
                 })
                 .catch(err => {
                     console.error(err);
+                    document.getElementById("plan-container").innerHTML =
+                        "Failed to load plan.";
                 });
         }
-    </script>
+
+        function renderPlan(data) {//creates the tables and fills the variable text
+            const container = document.getElementById("plan-container");
+            container.innerHTML = "";
+
+            document.getElementById("programname").textContent =
+                data.major || "Unknown";
+
+            const semesters = data.semesters;
+
+            for (const [semNum, semData] of Object.entries(semesters)) {
+
+                const header = document.createElement("h3");
+                header.textContent = `Semester ${semNum} — ${semData.season}`;
+                container.appendChild(header);
+
+                const table = document.createElement("table");
+
+                const tbody = document.createElement("tbody");
+
+                semData.courses.forEach(course => {
+                    const row = document.createElement("tr");
+                    const cell = document.createElement("td");
+                    cell.textContent = course;
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                });
+
+                table.appendChild(tbody);
+                container.appendChild(table);
+            }
+
+            document.getElementById("credits").textContent =
+                `Total Credits: ${data.totalCredits}`;
+        }
+
+        //regenerates the plan without needing a page refresh
+        //gets the json data from fouryearplan.json
+        function regeneratePlan() {
+
+            const sixCourse = document.getElementById("sixCourse").checked;
+            const winter = document.getElementById("winter").checked;
+            const summer = document.getElementById("summer").checked;
+
+            fetch("/api/generate-plan", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    sixCourse,
+                    winter,
+                    summer
+                })
+            })
+            .then(res => res.json())
+            .then(() => {
+                loadPlan(); // refresh without full page reload
+            })
+            .catch(err => {
+                console.error("Failed to regenerate plan:", err);
+            });
+        }
+
+        // initial load
+        loadPlan();
+        </script>
+    </main>
+
 
 </body>
 </html>
